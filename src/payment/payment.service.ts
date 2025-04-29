@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
 import axios from 'axios';
 import * as crypto from 'crypto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ConfigService } from '@nestjs/config';
+import {Repository} from "typeorm";
+import {Payment} from "../entities/payment.entity";
+import {InjectRepository} from "@nestjs/typeorm";
 
 @Injectable()
 export class PaymentService {
@@ -10,7 +13,10 @@ export class PaymentService {
   private readonly url: string;
   private readonly apiKey: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+      @InjectRepository(Payment)
+      private repo: Repository<Payment>,
+      private configService: ConfigService) {
     this.va = this.configService.get<string>('IPAYMU_VA')!;
     this.apiKey = this.configService.get<string>('IPAYMU_API_KEY')!;
     this.url = this.configService.get<string>('IPAYMU_URL')!;
@@ -41,9 +47,32 @@ export class PaymentService {
     return response.data;
   }
 
-  async handleNotification(data: any) {
-    console.log('Webhook diterima dari Ipaymu:', data);
-    return { status: 'received' };
+  async handleCallback(body: any) {
+    const payment:Payment|null = await this.repo.findOneBy({
+      referenceId: body.invoice,
+    });
+    if (!payment) {
+      throw new NotFoundException(
+          `Payment for invoice ${body.invoice} not found`,
+      );
+    }
+    const codeMap: Record<number, Payment['status']> = {
+      1: 'SUCCESS',
+      0: 'FAILED',
+      3: 'FAILED',
+    };
+
+    const incoming:any = body.transaction_status_code;
+    const mapped   = codeMap[incoming];
+    if (!mapped) {
+      throw new BadRequestException(
+          `Unknown payment status: ${incoming}`,
+      );
+    }
+    payment.status = mapped;
+    await this.repo.save(payment);
+
+    return { status: 'ok' };
   }
 
   async checkTransactionById(transactionId: string) {

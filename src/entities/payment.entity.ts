@@ -1,0 +1,19 @@
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+
+@Entity({ name: 'payments' })
+export class Payment {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+
+    @Column()
+    referenceId: string;
+
+    @Column('decimal')
+    amount: number;
+
+    @Column({ default: 'PENDING' })
+    status: 'PENDING' | 'SUCCESS' | 'FAILED';
+
+    @CreateDateColumn()
+    createdAt: Date;
+}

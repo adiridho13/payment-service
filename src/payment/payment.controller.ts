@@ -1,11 +1,22 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PaymentGuard } from './payment.guard';
 
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('pay')
   async pay(@Body() body: CreatePaymentDto) {
     return this.paymentService.createPayment(body);
@@ -15,14 +26,14 @@ export class PaymentController {
   // async webhook(@Body() body: any) {
   //   return this.paymentService.handleNotification(body);
   // }
+  // @UseGuards(PaymentGuard)
+  // @Post('ipaymu-callback')
+  // @HttpCode(200)
+  // handleCallback(@Body() body: any) {
+  //   return this.paymentService.handleCallback(body);
+  // }
 
-  @Post('ipaymu-callback')
-  handleCallback(@Body() body: any) {
-    console.log('iPaymu Callback:', body);
-    // Validate and update DB (if needed)
-    return { status: 'received' };
-  }
-
+  @UseGuards(JwtAuthGuard)
   @Get('status')
   async paymentStatus(@Query('referenceId') referenceId: string) {
     if (!referenceId) {
@@ -30,15 +41,16 @@ export class PaymentController {
     }
 
     try {
-        const result = await this.paymentService.checkTransactionById(referenceId);
+      const result =
+        await this.paymentService.checkTransactionById(referenceId);
 
-        const isPaid = result?.Data?.Status === 'Success';
+      const isPaid = result?.Data?.Status === 'Success';
 
-        return {
-          referenceId: referenceId,
-          paid: isPaid,
-          status: result?.Data?.Status || 'UNKNOWN',
-        };
+      return {
+        referenceId: referenceId,
+        paid: isPaid,
+        status: result?.Data?.Status || 'UNKNOWN',
+      };
     } catch (e) {
       return { error: 'Gagal cek status transaksi' };
     }

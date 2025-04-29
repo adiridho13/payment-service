@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Payment } from '../entities/payment.entity';
 import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import {ConfigModule} from "@nestjs/config";
-
+import {CallbackController} from 'src/webhook/callback.controller'
+import { AuthModule } from '../auth/auth.module';
 @Module({
-  controllers: [PaymentController],
+  controllers: [PaymentController,CallbackController],
   providers: [PaymentService],
-  imports: [ConfigModule],
+  imports: [ConfigModule,TypeOrmModule.forFeature([Payment]),
+    AuthModule],
 })
 export class PaymentModule {}
