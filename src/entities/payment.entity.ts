@@ -5,8 +5,11 @@ export class Payment {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column()
+    @Column({ type: 'varchar', nullable: true })
     referenceId: string;
+
+    @Column({ type: 'varchar', nullable: true })
+    transactionId: string;
 
     @Column('decimal')
     amount: number;

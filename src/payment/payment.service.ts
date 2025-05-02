@@ -1,11 +1,15 @@
-import {BadRequestException, Injectable, NotFoundException, UnauthorizedException} from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import axios from 'axios';
 import * as crypto from 'crypto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ConfigService } from '@nestjs/config';
-import {Repository} from "typeorm";
-import {Payment} from "../entities/payment.entity";
-import {InjectRepository} from "@nestjs/typeorm";
+import { Repository } from 'typeorm';
+import { Payment } from '../entities/payment.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class PaymentService {
@@ -14,61 +18,74 @@ export class PaymentService {
   private readonly apiKey: string;
 
   constructor(
-      @InjectRepository(Payment)
-      private repo: Repository<Payment>,
-      private configService: ConfigService) {
+    @InjectRepository(Payment)
+    private repo: Repository<Payment>,
+    private configService: ConfigService,
+  ) {
     this.va = this.configService.get<string>('IPAYMU_VA')!;
     this.apiKey = this.configService.get<string>('IPAYMU_API_KEY')!;
     this.url = this.configService.get<string>('IPAYMU_URL')!;
+    console.log('>> PAYMENT REPOSITORY INJECTED:', this.repo);
   }
 
   async createPayment(payload: CreatePaymentDto) {
-    const bodyEncrypt = crypto
+    // 1. Hitung hash dan signature
+    const bodyHash = crypto
       .createHash('sha256')
       .update(JSON.stringify(payload))
       .digest('hex');
 
-    const stringToSign = `POST:${this.va}:${bodyEncrypt}:${this.apiKey}`;
-
+    const stringToSign = `POST:${this.va}:${bodyHash}:${this.apiKey}`;
     const signature = crypto
       .createHmac('sha256', this.apiKey)
       .update(stringToSign)
       .digest('hex');
+
     const headers = {
       Accept: 'application/json',
       'Content-Type': 'application/json',
       va: this.va,
-      signature: signature,
+      signature,
       timestamp: Date.now().toString(),
     };
 
+    // 2. Panggil API IPAYMU
     const response = await axios.post(this.url, payload, { headers });
-    console.log('INI RESPONSE', response);
+    const data = response.data.Data;
+
+    // 3. Simpan ke database
+    const payment = this.repo.create({
+      referenceId: data.ReferenceId, // perhatikan huruf besar
+      transactionId: data.TransactionId, // perhatikan huruf besar
+      amount: data.Total ?? payload.amount,
+      status: data.Status ?? 'PENDING',
+    });
+    await this.repo.save(payment);
+
+    // 4. Kembalikan response IPAYMU
     return response.data;
   }
 
   async handleCallback(body: any) {
-    const payment:Payment|null = await this.repo.findOneBy({
-      referenceId: body.invoice,
+    const payment = await this.repo.findOneBy({
+      referenceId: body.reference_id,
     });
     if (!payment) {
-      throw new NotFoundException(
-          `Payment for invoice ${body.invoice} not found`,
-      );
+      throw new NotFoundException(`Payment ${body.reference_id} not found`);
     }
+
+    // 2) Map your incoming status code to your enum/string
     const codeMap: Record<number, Payment['status']> = {
       1: 'SUCCESS',
       0: 'FAILED',
       3: 'FAILED',
     };
-
-    const incoming:any = body.transaction_status_code;
-    const mapped   = codeMap[incoming];
+    const mapped = codeMap[body.transaction_status_code as number];
     if (!mapped) {
-      throw new BadRequestException(
-          `Unknown payment status: ${incoming}`,
-      );
+      throw new BadRequestException(`Unknown status: ${body.transaction_status_code}`);
     }
+
+    // 3) Mutate and save
     payment.status = mapped;
     await this.repo.save(payment);
 
@@ -107,5 +124,15 @@ export class PaymentService {
       console.error('Error checking transaction by ID:', error.message);
       throw new Error('Gagal mengambil status transaksi');
     }
+  }
+
+  async checkReferenceId(referenceId: string): Promise<{ Data: Payment }> {
+    const payment: Payment | any = await this.repo.findOneBy({
+      referenceId: referenceId,
+    });
+    if (!payment) {
+      throw new NotFoundException(`Payment ${referenceId} tidak ditemukan`);
+    }
+    return { Data: payment };
   }
 }

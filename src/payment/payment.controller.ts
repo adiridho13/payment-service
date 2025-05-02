@@ -11,6 +11,7 @@ import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaymentGuard } from './payment.guard';
+import {Payment} from "../entities/payment.entity";
 
 @Controller('payment')
 export class PaymentController {
@@ -34,22 +35,46 @@ export class PaymentController {
   // }
 
   @UseGuards(JwtAuthGuard)
+  @Get('statusTrx')
+  async paymentStatus(@Query('transactionId') transactionId: string) {
+    if (!transactionId) {
+      return { error: 'Missing transactionId' };
+    }
+
+    try {
+      const result =
+        await this.paymentService.checkTransactionById(transactionId);
+
+      const isPaid = result?.Data?.Status === 'Success';
+
+      return {
+        transactionId: transactionId,
+        paid: isPaid,
+        status: result?.Data?.Status || 'UNKNOWN',
+      };
+    } catch (e) {
+      return { error: 'Gagal cek status transaksi' };
+    }
+  }
+
+
+  @UseGuards(JwtAuthGuard)
   @Get('status')
-  async paymentStatus(@Query('referenceId') referenceId: string) {
+  async paymentStatusByRef(@Query('referenceId') referenceId: string) {
     if (!referenceId) {
       return { error: 'Missing referenceId' };
     }
 
     try {
-      const result =
-        await this.paymentService.checkTransactionById(referenceId);
+      const result:{Data:Payment} =
+          await this.paymentService.checkReferenceId(referenceId);
 
-      const isPaid = result?.Data?.Status === 'Success';
+      const isPaid = result?.Data?.status === 'SUCCESS';
 
       return {
         referenceId: referenceId,
         paid: isPaid,
-        status: result?.Data?.Status || 'UNKNOWN',
+        status: result?.Data?.status,
       };
     } catch (e) {
       return { error: 'Gagal cek status transaksi' };
