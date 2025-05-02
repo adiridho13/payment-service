@@ -55,10 +55,10 @@ export class PaymentService {
 
     // 3. Simpan ke database
     const payment = this.repo.create({
-      referenceId: data.ReferenceId, // perhatikan huruf besar
-      transactionId: data.TransactionId, // perhatikan huruf besar
+      referenceId: data.ReferenceId,
+      transactionId: data.TransactionId,
       amount: data.Total ?? payload.amount,
-      status: data.Status ?? 'PENDING',
+      status: data.Status ?? 'PENDING'
     });
     await this.repo.save(payment);
 
@@ -87,6 +87,7 @@ export class PaymentService {
 
     // 3) Mutate and save
     payment.status = mapped;
+    payment.paymentDate = new Date();
     await this.repo.save(payment);
 
     return { status: 'ok' };

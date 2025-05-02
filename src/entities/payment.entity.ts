@@ -19,4 +19,7 @@ export class Payment {
 
     @CreateDateColumn()
     createdAt: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
+    paymentDate: Date;
 }
