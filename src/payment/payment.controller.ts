@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpCode,
   Post,
   Query,
   UseGuards,
@@ -10,7 +9,6 @@ import {
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PaymentGuard } from './payment.guard';
 import {Payment} from "../entities/payment.entity";
 
 @Controller('payment')
