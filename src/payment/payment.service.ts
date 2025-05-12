@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { Payment } from '../entities/payment.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import {PaymentRequest} from "../entities/paymentRequest.entity";
 
 @Injectable()
 export class PaymentService {
@@ -20,6 +21,8 @@ export class PaymentService {
   constructor(
     @InjectRepository(Payment)
     private repo: Repository<Payment>,
+    @InjectRepository(PaymentRequest)
+    private repoPr: Repository<PaymentRequest>,
     private configService: ConfigService,
   ) {
     this.va = this.configService.get<string>('IPAYMU_VA')!;
@@ -49,26 +52,52 @@ export class PaymentService {
       timestamp: Date.now().toString(),
     };
 
-    // 2. Panggil API IPAYMU
-    const response = await axios.post(this.url, payload, { headers });
-    const data = response.data.Data;
-
-    // 3. Simpan ke database
-    const payment = this.repo.create({
-      referenceId: data.ReferenceId,
-      transactionId: data.TransactionId,
-      amount: data.Total ?? payload.amount,
-      status: data.Status ?? 'PENDING'
+    const reqEntity: PaymentRequest = this.repoPr.create({
+      user_id:      null,             // 🔑 required
+      reference_id: payload.referenceId,        // 🔑 required
+      request_body: JSON.stringify(payload),    // 🔑 required
+      status_code:  0,
     });
-    await this.repo.save(payment);
+    console.log("req entity", reqEntity);
+    const savedReq = await this.repoPr.save(reqEntity);
+    // 2. Panggil API IPAYMU
+    // const response = await axios.post(this.url, payload, { headers });
+    // const data = response.data.Data;
+    let ipayResponseData: any;
+    let ipayResponse: any;
+    try {
+      ipayResponse = await axios.post(this.url, payload, {
+        headers
+      });
+      ipayResponseData = ipayResponse.data.Data;
+      // 3. Simpan ke database
+      console.log('refernceid value', ipayResponseData.ReferenceId);
+      console.log('ipayresponsedata', ipayResponseData);
+      const payment = this.repo.create({
+        reference_id: ipayResponseData.ReferenceId,
+        transaction_id: ipayResponseData.TransactionId,
+        channel: ipayResponseData.Channel,
+        via: ipayResponseData.Via,
+        amount: ipayResponseData.Total ?? payload.amount,
+        status: ipayResponseData.Status ?? 'PENDING',
+
+      });
+      await this.repo.save(payment);
+    } catch (err) {
+      await this.repoPr.update(savedReq.id, {
+        response_body: JSON.stringify(ipayResponseData),
+        status_code:   ipayResponseData.status_code,
+      });
+      throw err;
+    }
 
     // 4. Kembalikan response IPAYMU
-    return response.data;
+    return ipayResponse.data;
   }
 
   async handleCallback(body: any) {
     const payment = await this.repo.findOneBy({
-      referenceId: body.reference_id,
+      reference_id: body.reference_id,
     });
     if (!payment) {
       throw new NotFoundException(`Payment ${body.reference_id} not found`);
@@ -87,9 +116,41 @@ export class PaymentService {
 
     // 3) Mutate and save
     payment.status = mapped;
-    payment.paymentDate = new Date();
-    await this.repo.save(payment);
+    payment.payment_at = new Date();
+    // await this.repo.save(payment);
+    //
+    // await this.repoPr.update(body.reference_id, {
+    //   response_body: JSON.stringify(body),
+    //   http_status:   body.status_code,
+    // });
 
+    try {
+      // 1. Simpan payment dulu
+      const savedPayment = await this.repo.save(payment);
+
+      // 2. Cek apakah save sukses (savedPayment bukan null/undefined)
+      if (savedPayment && savedPayment.id) {
+        // 3. Baru simpan response di repoPr
+        const updateResult = await this.repoPr.update(
+            { reference_id: body.reference_id },
+            {
+              response_body: JSON.stringify(body),
+              status_code:   body.status_code,
+            },
+        );
+        if (updateResult.affected && updateResult.affected > 0) {
+          console.log(`Response untuk ${body.reference_id} berhasil disimpan.`);
+        } else {
+          console.warn(`Tidak ada baris yang di-update untuk reference_id=${body.reference_id}`);
+        }
+      } else {
+        console.error('Gagal menyimpan payment:', savedPayment);
+        throw new Error('Save payment failed');
+      }
+    } catch (err) {
+      console.error('Error saat proses save/update:', err);
+      throw err; // atau tangani sesuai kebutuhan
+    }
     return { status: 'ok' };
   }
 
@@ -129,7 +190,7 @@ export class PaymentService {
 
   async checkReferenceId(referenceId: string): Promise<{ Data: Payment }> {
     const payment: Payment | any = await this.repo.findOneBy({
-      referenceId: referenceId,
+      reference_id: referenceId,
     });
     if (!payment) {
       throw new NotFoundException(`Payment ${referenceId} tidak ditemukan`);

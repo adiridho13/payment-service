@@ -6,20 +6,30 @@ export class Payment {
     id: string;
 
     @Column({ type: 'varchar', nullable: true })
-    referenceId: string;
+    reference_id: string;
 
     @Column({ type: 'varchar', nullable: true })
-    transactionId: string;
+    transaction_id: string;
 
     @Column('decimal')
     amount: number;
 
+    @Column({ type: 'varchar', nullable: true })
+    via: string;
+
+    @Column({ type: 'varchar', nullable: true })
+    channel: string;
+
+
     @Column({ default: 'PENDING' })
     status: 'PENDING' | 'SUCCESS' | 'FAILED';
 
+    @Column({ type: 'varchar', nullable: true })
+    meta_data: string;
+
     @CreateDateColumn()
-    createdAt: Date;
+    created_at: Date;
 
     @Column({ type: 'timestamp', nullable: true })
-    paymentDate: Date;
+    payment_at: Date;
 }

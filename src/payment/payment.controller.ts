@@ -73,7 +73,7 @@ export class PaymentController {
         referenceId: referenceId,
         paid: isPaid,
         status: result?.Data?.status,
-        paymentDate: result?.Data?.paymentDate,
+        paymentDate: result?.Data?.payment_at,
       };
     } catch (e) {
       return { error: 'Gagal cek status transaksi' };

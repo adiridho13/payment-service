@@ -13,12 +13,13 @@ export class UsersService {
 
     /** Cari user berdasarkan username */
     async findByUsername(username: string): Promise<User | null> {
-        return this.repo.findOneBy({ username });
+        return this.repo.findOneBy({
+           username: username});
     }
 
     /** Cari user berdasarkan ID */
     async findById(id: string): Promise<User | null> {
-        return this.repo.findOneBy({ id });
+        return this.repo.findOneBy({ id:id });
     }
 
     /** (Baru) List semua user */

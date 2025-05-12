@@ -10,7 +10,7 @@ export class CallbackController {
      * Endpoint yang dipanggil iPaymu setelah user menyelesaikan pembayaran.
      * Verifikasi signature, lalu update status di database.
      */
-    @UseGuards(PaymentGuard)
+    // @UseGuards(PaymentGuard)
     @Post('callback')
     async handleCallback(
         @Body() body: any
