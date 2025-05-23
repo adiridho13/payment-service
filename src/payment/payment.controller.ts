@@ -82,7 +82,6 @@ export class PaymentController {
 
   @Post('notify')
   async handleNotify(@Body() body: any) {
-
     if (body.status === 1 && body.statusCode === 200) {
       // ✅ Update transaksi di database
       // await this.transactionService.markAsPaid(body.referenceId);

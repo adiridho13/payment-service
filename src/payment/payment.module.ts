@@ -5,12 +5,12 @@ import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import {ConfigModule} from "@nestjs/config";
 import {CallbackController} from 'src/webhook/callback.controller'
-import { AuthModule } from '../auth/auth.module';
 import {PaymentRequest} from "../entities/paymentRequest.entity";
 @Module({
   controllers: [PaymentController,CallbackController],
   providers: [PaymentService],
   imports: [ConfigModule,TypeOrmModule.forFeature([Payment,PaymentRequest]),
-    AuthModule],
+    // AuthModule
+  ],
 })
 export class PaymentModule {}
