@@ -58,7 +58,6 @@ export class PaymentService {
       request_body: JSON.stringify(payload),    // 🔑 required
       status_code:  0,
     });
-    console.log("req entity", reqEntity);
     const savedReq = await this.repoPr.save(reqEntity);
     // 2. Panggil API IPAYMU
     // const response = await axios.post(this.url, payload, { headers });

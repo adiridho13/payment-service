@@ -15,7 +15,7 @@ import {Payment} from "../entities/payment.entity";
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Post('pay')
   async pay(@Body() body: CreatePaymentDto) {
     return this.paymentService.createPayment(body);
@@ -32,7 +32,7 @@ export class PaymentController {
   //   return this.paymentService.handleCallback(body);
   // }
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Get('statusTrx')
   async paymentStatus(@Query('transactionId') transactionId: string) {
     if (!transactionId) {
@@ -56,7 +56,7 @@ export class PaymentController {
   }
 
 
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Get('status')
   async paymentStatusByRef(@Query('referenceId') referenceId: string) {
     if (!referenceId) {
@@ -82,7 +82,6 @@ export class PaymentController {
 
   @Post('notify')
   async handleNotify(@Body() body: any) {
-    console.log('🔔 Simulasi Notify Diterima:', body);
 
     if (body.status === 1 && body.statusCode === 200) {
       // ✅ Update transaksi di database

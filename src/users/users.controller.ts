@@ -20,7 +20,7 @@ export class UsersController {
      * GET /users
      * (Protected) List semua user
      */
-    @UseGuards(JwtAuthGuard)
+    // @UseGuards(JwtAuthGuard)
     @Get()
     async findAll() {
         const users = await this.usersService.findAll();
@@ -31,7 +31,7 @@ export class UsersController {
      * GET /users/:username
      * (Protected) Cari user berdasarkan username
      */
-    @UseGuards(JwtAuthGuard)
+    // @UseGuards(JwtAuthGuard)
     @Get(':username')
     async findOne(@Param('username') username: string) {
         const user = await this.usersService.findByUsername(username);
