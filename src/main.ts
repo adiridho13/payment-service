@@ -22,7 +22,7 @@ async function bootstrap() {
     }));
     app.enableCors({
         origin: [
-            'payment-ui-one.vercel.app'
+            'https://payment-ui-one.vercel.app'
         ],
     });
     await app.listen(process.env.PORT || 3000);
