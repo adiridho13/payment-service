@@ -85,7 +85,6 @@ export class PaymentService {
     } catch (err) {
       await this.repoPr.update(savedReq.id, {
         response_body: JSON.stringify(ipayResponseData),
-        status_code:   ipayResponseData.status_code,
       });
       throw err;
     }
