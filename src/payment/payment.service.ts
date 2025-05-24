@@ -83,9 +83,6 @@ export class PaymentService {
       });
       await this.repo.save(payment);
     } catch (err) {
-      await this.repoPr.update(savedReq.id, {
-        response_body: JSON.stringify(ipayResponseData),
-      });
       throw err;
     }
 
