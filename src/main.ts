@@ -20,10 +20,15 @@ async function bootstrap() {
         forbidNonWhitelisted: true,
         transform: true,
     }));
+    const isDev = process.env.NODE_ENV === "development";
+    const allowedOrigin = isDev
+        ? "http://localhost:3001"
+        : "https://payment-ui-one.vercel.app";
     app.enableCors({
-        origin: [
-            'https://payment-ui-one.vercel.app'
-        ],
+        origin: allowedOrigin,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        credentials: true, // jika butuh kirim cookie atau Authorization header
     });
     await app.listen(process.env.PORT || 3000);
 }

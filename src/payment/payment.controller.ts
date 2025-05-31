@@ -4,11 +4,9 @@ import {
   Get,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {Payment} from "../entities/payment.entity";
 
 @Controller('payment')
@@ -73,7 +71,7 @@ export class PaymentController {
         referenceId: referenceId,
         paid: isPaid,
         status: result?.Data?.status,
-        paymentDate: result?.Data?.payment_at,
+        paymentDate: result?.Data?.paymentAt,
       };
     } catch (e) {
       return { error: 'Gagal cek status transaksi' };

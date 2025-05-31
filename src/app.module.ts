@@ -11,8 +11,15 @@ import {Module} from "@nestjs/common";
         envFilePath: ['.env'],
       })],
       useFactory: (cfg: ConfigService) => ({
-        type: 'postgres',
-        url: cfg.get<string>('DATABASE_URL'),
+
+        // type: 'postgres',
+        // url: cfg.get<string>('DATABASE_URL'),
+        type: "mariadb",                        // Ubah menjadi 'mariadb'
+        host: cfg.get<string>("DB_HOST"),       // alamat host MariaDB
+        port: cfg.get<number>("DB_PORT"),
+        username: cfg.get<string>("DB_USER"),   // user MariaDB
+        password: cfg.get<string>("DB_PASS"),   // password MariaDB
+        database: cfg.get<string>("DB_NAME"),
         autoLoadEntities: true,
         // synchronize: cfg.get<string>('NODE_ENV') !== 'production',
         synchronize: true,

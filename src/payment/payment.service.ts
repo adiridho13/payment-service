@@ -1,6 +1,7 @@
 import {
+  BadGatewayException,
   BadRequestException,
-  Injectable,
+  Injectable, InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import axios from 'axios';
@@ -52,13 +53,13 @@ export class PaymentService {
       timestamp: Date.now().toString(),
     };
 
-    const reqEntity: PaymentRequest = this.repoPr.create({
-      user_id:      null,             // 🔑 required
-      reference_id: payload.referenceId,        // 🔑 required
-      request_body: JSON.stringify(payload),    // 🔑 required
-      status_code:  0,
-    });
-    const savedReq = await this.repoPr.save(reqEntity);
+    // const reqEntity: PaymentRequest = this.repoPr.create({
+    //   user_id:      null,             // 🔑 required
+    //   reference_id: payload.referenceId,        // 🔑 required
+    //   request_body: JSON.stringify(payload),    // 🔑 required
+    //   status_code:  0,
+    // });
+    // const savedReq = await this.repoPr.save(reqEntity);
     // 2. Panggil API IPAYMU
     // const response = await axios.post(this.url, payload, { headers });
     // const data = response.data.Data;
@@ -73,8 +74,8 @@ export class PaymentService {
       console.log('refernceid value', ipayResponseData.ReferenceId);
       console.log('ipayresponsedata', ipayResponseData);
       const payment = this.repo.create({
-        reference_id: ipayResponseData.ReferenceId,
-        transaction_id: ipayResponseData.TransactionId,
+        referenceId: ipayResponseData.ReferenceId,
+        transactionId: ipayResponseData.TransactionId,
         channel: ipayResponseData.Channel,
         via: ipayResponseData.Via,
         amount: ipayResponseData.Total ?? payload.amount,
@@ -92,7 +93,7 @@ export class PaymentService {
 
   async handleCallback(body: any) {
     const payment = await this.repo.findOneBy({
-      reference_id: body.reference_id,
+      referenceId: body.reference_id,
     });
     if (!payment) {
       throw new NotFoundException(`Payment ${body.reference_id} not found`);
@@ -111,7 +112,7 @@ export class PaymentService {
 
     // 3) Mutate and save
     payment.status = mapped;
-    payment.payment_at = new Date();
+    payment.paymentAt = new Date();
     // await this.repo.save(payment);
     //
     // await this.repoPr.update(body.reference_id, {
@@ -140,11 +141,11 @@ export class PaymentService {
         }
       } else {
         console.error('Gagal menyimpan payment:', savedPayment);
-        throw new Error('Save payment failed');
+        throw new BadGatewayException('Terjadi kegagalan penyimpanan');
       }
     } catch (err) {
       console.error('Error saat proses save/update:', err);
-      throw err; // atau tangani sesuai kebutuhan
+      throw new InternalServerErrorException('Gagal menyimpan payment');
     }
     return { status: 'ok' };
   }
@@ -185,7 +186,7 @@ export class PaymentService {
 
   async checkReferenceId(referenceId: string): Promise<{ Data: Payment }> {
     const payment: Payment | any = await this.repo.findOneBy({
-      reference_id: referenceId,
+      referenceId: referenceId,
     });
     if (!payment) {
       throw new NotFoundException(`Payment ${referenceId} tidak ditemukan`);
