@@ -2,15 +2,19 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity({ name: 'users' })
 export class User {
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn('uuid') // atau pakai bigint auto_increment
     id: string;
 
-    @Column({ unique: true })
+    @Column({ type: 'varchar', length: 100, unique: true })
     username: string;
 
-    @Column()
+    @Column({ type: 'varchar', length: 255 })
     password: string;
 
-    @Column({ default: 'user' })
+    @Column({
+        type: 'enum',
+        enum: ['user', 'admin'],
+        default: 'user',
+    })
     role: string;
 }
