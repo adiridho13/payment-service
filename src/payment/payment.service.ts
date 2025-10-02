@@ -71,8 +71,8 @@ export class PaymentService {
       });
       ipayResponseData = ipayResponse.data.Data;
       // 3. Simpan ke database
-      console.log('refernceid value', ipayResponseData.ReferenceId);
-      console.log('ipayresponsedata', ipayResponseData);
+      // console.log('refernceid value', ipayResponseData.ReferenceId);
+      // console.log('ipayresponsedata', ipayResponseData);
       const payment = this.repo.create({
         referenceId: ipayResponseData.ReferenceId,
         transactionId: ipayResponseData.TransactionId,
