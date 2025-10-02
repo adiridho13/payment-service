@@ -93,7 +93,7 @@ export class PaymentService {
 
   async handleCallback(body: any) {
     const payment = await this.repo.findOneBy({
-      referenceId: body.reference_id,
+      referenceId: body.reference_id
     });
     if (!payment) {
       throw new NotFoundException(`Payment ${body.reference_id} not found`);
@@ -110,6 +110,12 @@ export class PaymentService {
       throw new BadRequestException(`Unknown status: ${body.transaction_status_code}`);
     }
 
+    // add validation if success do not update
+    if (payment.status === 'SUCCESS') {
+      // opsional: tetap catat log
+      // await this.repoPr.update({ reference_id: body.reference_id }, { response_body: JSON.stringify(body) });
+      return { status: 'ok', skipped: 'already-success' };
+    }
     // 3) Mutate and save
     payment.status = mapped;
     payment.paymentAt = new Date();
